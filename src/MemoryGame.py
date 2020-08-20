@@ -21,28 +21,33 @@ class Background(Enum):
 class MemoryGame:
     def __init__(self):
         self.state_manager = StateManager()
-        pygame.init()
         self.max_collection_count = 8
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
         self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
                             "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
-        self.images = None
+        self.images = self.normal_images
+        pygame.init()
         self.screen = pygame.display.set_mode((600, 400))
-        self.menu = pygame_menu.Menu(400, 600, 'Welcome', theme=pygame_menu.themes.THEME_GREEN)
+        self.menu = pygame_menu.Menu(400, 600, 'Welcome', theme=pygame_menu.themes.THEME_SOLARIZED)
 
         self.menu.add_text_input('Name :', default='Spieler1')
         self.menu.add_selector('Tile Theme :', [('Normal', Background.normal), ('Logos', Background.logos),
                                                 ('Mixed', Background.mixed)], onchange=self.set_tile_images)
+
         self.menu.add_button('Play', self.start_game)
         self.menu.add_button('Quit', pygame_menu.events.EXIT)
         self.menu.mainloop(self.screen)
         pygame.quit()
 
     def set_tile_images(self, value, tile_type):
+        """
+        :param value: tuple of selected tile theme in main screen
+        :param tile_type: enum of type Background
+        :rtype: void
+        """
         if tile_type == Background.normal:
             self.images = self.normal_images * 2
-
         elif tile_type == Background.logos:
             self.images = self.logo_images * 2
         elif tile_type == Background.mixed:
@@ -68,6 +73,11 @@ class MemoryGame:
         self.game_loop(tiles)
 
     def check_click(self, tiles):
+        """
+        :param tiles: list of created tiles displayed by screen
+        :return: returns if any tile has been clicked
+        :rtype: bool
+        """
         res = False
         for tile in tiles:
             has_capacity = self.state_manager.has_capacity()
@@ -82,15 +92,27 @@ class MemoryGame:
         return res
 
     def draw_tiles(self, tiles):
+        """
+        :param tiles: list of created tiles displayed by screen
+        :rtype: void
+        """
         for tile in tiles:
             tile.draw(self.screen)
 
     def reset_screen(self, clock):
+        """
+        :rtype: void
+        :param clock: pygame clock (https://www.pygame.org/docs/ref/time.html#pygame.time.Clock)
+        """
         pygame.display.flip()
         clock.tick(30)
         pygame.display.update()
 
     def game_loop(self, tiles):
+        """
+        :param tiles: list of created tiles displayed by screen
+        :rtype: void
+        """
         clock = pygame.time.Clock()
         running = True
 
@@ -101,10 +123,10 @@ class MemoryGame:
                 self.screen = pygame.display.set_mode((600, 400))
 
             """
-            Das Programm verwendet den Key 'c' um die nicht passenden Karten umzudrehen, da
-            die clock des Programmes nicht warten kann. 
-            Eine thread-basierte Lösung ist ebenfalls nicht realisierbar, da es sonst zu Komplikationen mit
-            dem Interagieren der Tiles kommt
+            Using key 'c' to hide the incorrect matches.
+            This is required because a thread based solution is asynchronous and
+            therefore would need to sync events and state of tiles, 
+            therefore interactions would be ambiguous
             """
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 if self.state_manager.is_full():
@@ -124,12 +146,24 @@ class MemoryGame:
             self.reset_screen(clock)
 
     def get_random_image(self, images):
+        """
+        :param images: list of chosen images in main screen
+        :return: tuple of random selected image in image list and associated tile id
+        :rtype: (str, str)
+        """
         rand_image = random.choice(images)
         images.remove(rand_image)
         tile_id = Path(rand_image).resolve().stem
         return rand_image, tile_id
 
     def add_tile(self, y, x, tiles, images):
+        """
+        :rtype: void
+        :param y: y-coordinate of selected tile
+        :param x: x-coordinate of selected tile
+        :param tiles: list of all created tiles
+        :param images: list of available images
+        """
         try:
             rand_image, tile_id = self.get_random_image(images)
             img = pygame.image.load('images/' + rand_image)
@@ -141,6 +175,10 @@ class MemoryGame:
             print("Can't find image for tile")
 
     def check_finished(self, tiles):
+        """
+        :param tiles: list of all displayed tiles
+        :rtype: void
+        """
         finished = True
         for tile in tiles:
             finished = finished and not tile.covered
@@ -151,14 +189,18 @@ class MemoryGame:
             print("Deine Genauigkeit: " + str((self.state_manager.matches / self.state_manager.matches) * 100))
 
     def prepare_tiles(self, tiles_count):
-        images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg", "biene.jpg", "pferd.jpg", "auto.jpg",
-                  "nebel.jpg"] * 2
+        """
+        :param tiles_count: specifies the count of tiles fitting in each row/column
+        :return: a list of tiles created by count of tiles
+        :rtype: list
+        """
+        images = self.images
         random.shuffle(images)
 
         assert tiles_count <= math.sqrt(len(images))
 
         tiles = []
-        # itertools benutzt um die loop zu "flatten" und die startup-zeit zu vermindern
+        # using itertools to flatten (merging 2 lists) and therefore optimizing startup time
         for y, x in itertools.product(range(tiles_count), range(tiles_count)):
             self.add_tile(y, x, tiles, images)
         return tiles
