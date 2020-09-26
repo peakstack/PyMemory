@@ -3,6 +3,8 @@ import math
 import random
 from enum import Enum
 from pathlib import Path
+from os import listdir
+from os.path import isfile, join
 
 import pygame
 import pygame_menu
@@ -13,32 +15,39 @@ from src.TileException import TileException
 
 
 class Background(Enum):
-    normal = 1
-    logos = 2
-    mixed = 3
+    NORMAL = 1
+    LOGOS = 2
+    MIXED = 3
+    CUSTOM = 4
 
 
 class MemoryGame:
     def __init__(self):
+        self.custom_images_path = "images/custom"
         self.state_manager = StateManager()
-        self.max_collection_count = 8
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
         self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
                             "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
         self.images = self.normal_images * 2
+        self.max_collection_count = 8
         pygame.init()
         self.screen = pygame.display.set_mode((600, 400))
         self.menu = pygame_menu.Menu(400, 600, 'Welcome', theme=pygame_menu.themes.THEME_SOLARIZED)
 
         self.menu.add_text_input('Name :', default='Spieler1')
-        self.menu.add_selector('Tile Theme :', [('Normal', Background.normal), ('Logos', Background.logos),
-                                                ('Mixed', Background.mixed)], onchange=self.set_tile_images)
-
+        self.menu.add_selector('Tile Theme :', [('Normal', Background.NORMAL), ('Logos', Background.LOGOS),
+                                                ('Mixed', Background.MIXED), ('Custom', Background.CUSTOM)],
+                               onchange=self.set_tile_images)
+        self.menu.add_selector('Tile Count :', [('4x4', 4)],
+                               onchange=self.change_tile_count)
         self.menu.add_button('Play', self.start_game)
         self.menu.add_button('Quit', pygame_menu.events.EXIT)
         self.menu.mainloop(self.screen)
         pygame.quit()
+
+    def change_tile_count(self, value, tile_count):
+        self.max_collection_count = tile_count * 2
 
     def calculate_match_ratio(self) -> float:
         mismatches = self.state_manager.mismatches
@@ -49,9 +58,9 @@ class MemoryGame:
             return 0.0
         return matches / ratio
 
-    def mix_lists(self, normal_images, logo_images):
+    def mix_lists_fit(self, normal_images, logo_images):
         """
-        :param normal_images: all default images
+        :param normal_images: all default images fit
         :param logo_images: images of programming languages
         :return: mixed list of both
         :rtype: list
@@ -68,23 +77,27 @@ class MemoryGame:
         :param tile_type: enum of type Background
         :rtype: void
         """
-        if tile_type == Background.normal:
+        if tile_type == Background.NORMAL:
             self.images = self.normal_images * 2
-        elif tile_type == Background.logos:
+        elif tile_type == Background.LOGOS:
             self.images = self.logo_images * 2
-        elif tile_type == Background.mixed:
-            images = self.mix_lists(self.normal_images, self.logo_images)
-            assert len(images) == self.max_collection_count
+        elif tile_type == Background.MIXED:
+            images = self.mix_lists_fit(self.normal_images, self.logo_images)
             self.images = images * 2
+        elif tile_type == Background.CUSTOM:
+            file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
+                          if isfile(join(self.custom_images_path, f))]
+            self.images = file_names * 2
         else:
             raise RuntimeError("background type not supported")
 
     def start_game(self):
         tiles_count = int(self.max_collection_count / 2)
         border_size = 5
-        grid_size = tiles_count * 65 - border_size
+        space_size = 65
+        grid_size = tiles_count * space_size - border_size
         self.screen = pygame.display.set_mode((grid_size, grid_size))
-        tiles = self.prepare_tiles(tiles_count)
+        tiles = self.prepare_tiles(tiles_count, space_size)
         self.game_loop(tiles)
 
     def check_click(self, tiles):
@@ -171,8 +184,9 @@ class MemoryGame:
         tile_id = Path(rand_image).resolve().stem
         return rand_image, tile_id
 
-    def add_tile(self, y, x, tiles, images):
+    def add_tile(self, y, x, tiles, images, space_size):
         """
+        :param space_size: size of the space between the tiles
         :rtype: void
         :param y: y-coordinate of selected tile
         :param x: x-coordinate of selected tile
@@ -184,7 +198,7 @@ class MemoryGame:
             img = pygame.image.load('images/' + rand_image)
 
             cover = pygame.image.load('images/hidden.jpg')
-            tile = Tile(x * 65, y * 65, img, cover, tile_id)
+            tile = Tile(x * space_size, y * space_size, img, cover, tile_id)
             tiles.append(tile)
         except IndexError:
             print("Can't find image for tile")
@@ -201,18 +215,22 @@ class MemoryGame:
             print("Deine Statistiken:")
             print("Deine Genauigkeit: " + str(self.calculate_match_ratio() * 100.0) + "%")
 
-    def prepare_tiles(self, tiles_count):
+    def prepare_tiles(self, tiles_count, space_size):
         """
+        :param space_size: size of the space between the tiles
         :param tiles_count: specifies the count of tiles fitting in each row/column
         :return: a list of tiles created by count of tiles
         :rtype: list
         """
         images = self.images
+
+        if len(images) == 0:
+            self.images = self.mix_lists_fit(self.normal_images, self.logo_images)
+
         random.shuffle(images)
         assert tiles_count <= math.sqrt(len(images))
-
         tiles = []
         # using itertools to flatten (merging 2 lists) and therefore optimizing startup time
         for y, x in itertools.product(range(tiles_count), range(tiles_count)):
-            self.add_tile(y, x, tiles, images)
+            self.add_tile(y, x, tiles, images, space_size)
         return tiles
