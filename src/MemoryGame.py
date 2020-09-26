@@ -26,7 +26,7 @@ class MemoryGame:
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
         self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
                             "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
-        self.images = self.normal_images
+        self.images = self.normal_images * 2
         pygame.init()
         self.screen = pygame.display.set_mode((600, 400))
         self.menu = pygame_menu.Menu(400, 600, 'Welcome', theme=pygame_menu.themes.THEME_SOLARIZED)
@@ -40,6 +40,28 @@ class MemoryGame:
         self.menu.mainloop(self.screen)
         pygame.quit()
 
+    def calculate_match_ratio(self) -> float:
+        mismatches = self.state_manager.mismatches
+        matches = self.state_manager.matches
+        ratio = matches + mismatches
+
+        if ratio == 0:
+            return 0.0
+        return matches / ratio
+
+    def mix_lists(self, normal_images, logo_images):
+        """
+        :param normal_images: all default images
+        :param logo_images: images of programming languages
+        :return: mixed list of both
+        :rtype: list
+        """
+        merged_length = len(normal_images) + len(logo_images)
+        merged_list = (normal_images + logo_images)
+        random.shuffle(merged_list)
+        merge_ratio = 2 if merged_length == self.max_collection_count else 0.5
+        return merged_list[:int(merged_length * merge_ratio)]
+
     def set_tile_images(self, value, tile_type):
         """
         :param value: tuple of selected tile theme in main screen
@@ -51,21 +73,14 @@ class MemoryGame:
         elif tile_type == Background.logos:
             self.images = self.logo_images * 2
         elif tile_type == Background.mixed:
-            merged_length = len(self.normal_images) + len(self.logo_images)
-
-            if merged_length == self.max_collection_count * 2:
-                images = (self.normal_images + self.logo_images)[:self.max_collection_count]
-            else:
-                images = (self.normal_images + self.logo_images)[:merged_length / 2]
-
+            images = self.mix_lists(self.normal_images, self.logo_images)
             assert len(images) == self.max_collection_count
-
-            self.images = self.logo_images * 2
+            self.images = images * 2
         else:
             raise RuntimeError("background type not supported")
 
     def start_game(self):
-        tiles_count = 4
+        tiles_count = int(self.max_collection_count / 2)
         border_size = 5
         grid_size = tiles_count * 65 - border_size
         self.screen = pygame.display.set_mode((grid_size, grid_size))
@@ -99,7 +114,7 @@ class MemoryGame:
         for tile in tiles:
             tile.draw(self.screen)
 
-    def reset_screen(self, clock):
+    def update_screen(self, clock):
         """
         :rtype: void
         :param clock: pygame clock (https://www.pygame.org/docs/ref/time.html#pygame.time.Clock)
@@ -143,7 +158,7 @@ class MemoryGame:
                 self.check_finished(tiles)
 
             self.draw_tiles(tiles)
-            self.reset_screen(clock)
+            self.update_screen(clock)
 
     def get_random_image(self, images):
         """
@@ -179,14 +194,12 @@ class MemoryGame:
         :param tiles: list of all displayed tiles
         :rtype: void
         """
-        finished = True
-        for tile in tiles:
-            finished = finished and not tile.covered
+        finished = all(not tile.covered for tile in tiles)
 
         if finished:
             print("Du hast das Spiel gewonnen!")
             print("Deine Statistiken:")
-            print("Deine Genauigkeit: " + str((self.state_manager.matches / self.state_manager.matches) * 100))
+            print("Deine Genauigkeit: " + str(self.calculate_match_ratio() * 100.0) + "%")
 
     def prepare_tiles(self, tiles_count):
         """
@@ -196,7 +209,6 @@ class MemoryGame:
         """
         images = self.images
         random.shuffle(images)
-
         assert tiles_count <= math.sqrt(len(images))
 
         tiles = []

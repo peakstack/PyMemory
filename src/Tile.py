@@ -9,7 +9,7 @@ class Tile:
         self.covered = True
         self.tile_id = tile_id
 
-    def check_clicked(self, has_capacity):
+    def check_clicked(self, has_capacity) -> bool:
         if not has_capacity:
             return False
 
@@ -19,7 +19,7 @@ class Tile:
             self.flip()
             return True
 
-    def handle_event(self, has_capacity):
+    def handle_event(self, has_capacity) -> bool:
         return self.check_clicked(has_capacity)
 
     def set_covered(self, val):
