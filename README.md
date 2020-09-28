@@ -13,8 +13,8 @@ Windows:
 ```
 pip install -r requirements.txt
 python MemoryGame.py
+
 ```
-<b>However pygame is not very performant on gnu+linux so you have to deal with it.</b>
 Fedora:
 ```
 python3 -m pip install pyperclip
