@@ -7,6 +7,12 @@ docker build --tag the-pymemory
 docker run --name pymemory the-pymemory
 ```
 
+Um das Projekt selbst zu starten:
+```
+pip install -r requirements.txt
+python ./MemoryGame.py
+```
+
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
 Es gibt zu jedem Bild zwei Paare. 
 Das Spiel besteht aus einem quadratischen Spielfeld, die Karten sind verdeckt hinzulegen.
