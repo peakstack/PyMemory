@@ -1,5 +1,5 @@
 # PyMemory
-<b>Derzeit nicht möglich da pip die Abhängigkeiten nicht herunterlädt.</b>
+<b>(Derzeit nicht möglich da pip die Abhängigkeiten nicht herunterlädt.)</b><br>
 Um das Projekt mit Docker zu starten:
 
 ```
