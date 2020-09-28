@@ -10,9 +10,6 @@ class StateManager:
         self.matches = 0
         self.mismatches = 0
 
-    def load_from_json(self):
-        pass
-
     def add_clicked_tile(self, tile):
         if self.has_capacity():
             self.current_flipped_tiles.append(tile)

@@ -37,7 +37,8 @@ class MemoryGame:
         self.images = self.normal_images * 2
         self.max_collection_count = 8
         pygame.init()
-        pygame.display.set_caption('PyGame - Teste dein Gedächtnis')
+        pygame.display.set_icon(pygame.image.load('../images/hidden.jpg'))
+        pygame.display.set_caption('PyMemory - Teste dein Gedächtnis')
         self.screen = pygame.display.set_mode((600, 400))
         self.menu = pygame_menu.Menu(400, 600, 'Willkommen', theme=pygame_menu.themes.THEME_SOLARIZED)
 
@@ -256,9 +257,25 @@ class MemoryGame:
             self.images = self.mix_lists_fit(self.normal_images, self.logo_images)
 
         random.shuffle(images)
+        # asserting the quadratic property of the game field
+        """
+                        
+                        tiles_count, e.g. 4     therefore we assume that the product of it is quadratic
+                            # # # #             available tiles = 16, asserted tiles = 4
+        tiles_count, e.g. 4 # # # #             4 <= sqrt(16) // -> True
+                            # # # #             asserted tiles = 5 ->   5 <= sqrt(16)   // -> False
+                            # # # #             if we have a tile_count of 5x5 then it would not fit
+                                                25 would fit into 5x5, but 25 is odd so therefore is 1 card left
+                                                36 would fit into 6x6, but I only have 16 cards available and this would 
+                                                make up 16*2 = 32 cards
+        """
         assert tiles_count <= math.sqrt(len(images))
         tiles = []
         # using itertools to flatten (merging 2 lists) and therefore optimizing startup time
         for y, x in itertools.product(range(tiles_count), range(tiles_count)):
             self.add_tile(y, x, tiles, images, space_size)
         return tiles
+
+
+if __name__ == '__main__':
+    game = MemoryGame()
