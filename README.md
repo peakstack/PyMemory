@@ -14,7 +14,7 @@ python ./MemoryGame.py
 ```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
-Es gibt zu jedem Bild zwei Paare. 
+Es gibt zu jedem Bild ein Paar. 
 Das Spiel besteht aus einem quadratischen Spielfeld, die Karten sind verdeckt hinzulegen.
 Eine Runde besteht aus dem zufälligen Umdrehen von zwei verdeckten Karten. 
 Falls diese das gleiche Bild besitzen, so bleiben sie umgedreht.
