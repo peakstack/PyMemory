@@ -8,9 +8,19 @@ docker run --name pymemory the-pymemory
 ```
 
 Um das Projekt selbst zu starten:
+
+Windows:
 ```
 pip install -r requirements.txt
 python MemoryGame.py
+```
+<b>However pygame is not very performant on gnu+linux so you have to deal with it.</b>
+Fedora:
+```
+python3 -m pip install pyperclip
+dnf install python3-pygame
+pip install -r requirements.txt
+python ./MemoryGame.py
 ```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
