@@ -41,21 +41,29 @@ class MemoryGame:
         pygame.display.set_caption('PyMemory - Teste dein Gedächtnis')
         self.screen = pygame.display.set_mode((600, 400))
         self.menu = pygame_menu.Menu(400, 600, 'Willkommen', theme=pygame_menu.themes.THEME_SOLARIZED)
-
-        self.menu.add_text_input('Name :', default=self.username, onchange=self.set_username)
-        self.menu.add_selector('Hintergrund:', [('Normal', Background.NORMAL), ('Logos', Background.LOGOS),
-                                                ('Gemischt', Background.MIXED),
-                                                ('Benutzerdefiniert', Background.CUSTOM)],
+        self.menu.add_text_input('Name: ', default=self.username, onchange=self.set_username)
+        self.menu.add_selector('Hintergrund: ', [('Normal', Background.NORMAL), ('Logos', Background.LOGOS),
+                                                 ('Gemischt', Background.MIXED),
+                                                 ('Benutzerdefiniert', Background.CUSTOM)],
                                onchange=self.set_tile_images)
-        self.menu.add_selector('Spielgröße :', [('4x4', 4)],
+        self.menu.add_selector('Spielgröße: ', [('4x4', 4)],
                                onchange=self.change_tile_count)
+        self.label = self.menu.add_label(title='Highscore: Nicht vorhanden', label_id='highscore', selectable=True)
         self.menu.add_button('Spielen', self.start_game)
         self.menu.add_button('Beenden', pygame_menu.events.EXIT)
+        self.refresh_stats(self.username)
         self.menu.mainloop(self.screen)
         pygame.quit()
 
     def set_username(self, username):
         self.username = username
+        self.refresh_stats(username)
+
+    def refresh_stats(self, username):
+        high_score = self.player_statistics.get_highscore(username)
+        high_score_display = 'Highscore: ' + str(high_score) + "%" if high_score is not None else 'Highscore: Nicht ' \
+                                                                                                  'vorhanden '
+        self.label.set_title(high_score_display)
 
     def reset(self):
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
@@ -64,6 +72,8 @@ class MemoryGame:
                             "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
         self.images = self.normal_images * 2
         self.set_tile_images(None, self.game_mode)
+        self.state_manager.clear_tiles()
+        self.refresh_stats(self.username)
 
     def change_tile_count(self, value, tile_count):
         self.max_collection_count = tile_count * 2
@@ -75,7 +85,7 @@ class MemoryGame:
 
         if ratio == 0:
             return 0.0
-        return matches / ratio
+        return round(matches / ratio, 2)
 
     def mix_lists_fit(self, normal_images, logo_images):
         """
@@ -106,13 +116,13 @@ class MemoryGame:
         elif tile_type == Background.CUSTOM:
             file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
                           if isfile(join(self.custom_images_path, f))]
-            self.images = file_names * 2
+            random.shuffle(file_names)
+            self.images = file_names[:self.max_collection_count] * 2
         else:
             raise RuntimeError("background type not supported")
         self.game_mode = tile_type
 
     def start_game(self):
-        self.reset()
         tiles_count = int(self.max_collection_count / 2)
         border_size = 5
         space_size = 65
@@ -170,6 +180,7 @@ class MemoryGame:
                 if event.type == pygame.QUIT:
                     running = False
                     self.screen = pygame.display.set_mode((600, 400))
+                    self.reset()
                 """
                 Using key 'c' to hide the incorrect matches.
                 This is required because a thread based solution is asynchronous and
@@ -231,7 +242,7 @@ class MemoryGame:
         finished = all(not tile.covered for tile in tiles)
 
         if finished:
-            ratio = self.calculate_match_ratio() * 100.0
+            ratio = round(self.calculate_match_ratio() * 100.0, 2)
 
             print("Du hast das Spiel gewonnen!")
             print("Deine Statistiken:")

@@ -17,7 +17,10 @@ class PlayerStatistics:
             self.save_to_file()
 
     def is_new_highscore(self, name, ratio):
-        return ratio > self.data[name]
+        try:
+            return ratio > self.data[name]
+        except KeyError:
+            return False
 
     def save_to_file(self):
         with open(self.save_file, 'w') as outfile:
@@ -30,3 +33,9 @@ class PlayerStatistics:
 
         with open(self.save_file) as file:
             self.data = json.load(file)
+
+    def get_highscore(self, name):
+        try:
+            return self.data[name]
+        except KeyError:
+            return None
