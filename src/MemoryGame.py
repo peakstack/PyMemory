@@ -106,7 +106,6 @@ class MemoryGame:
         elif tile_type == Background.CUSTOM:
             file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
                           if isfile(join(self.custom_images_path, f))]
-            print(file_names)
             self.images = file_names * 2
         else:
             raise RuntimeError("background type not supported")
