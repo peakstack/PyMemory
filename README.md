@@ -1,5 +1,5 @@
 # PyMemory
-
+<b>Derzeit nicht möglich da pip die Abhängigkeiten nicht herunterlädt.</b>
 Um das Projekt mit Docker zu starten:
 
 ```
@@ -13,7 +13,6 @@ Windows:
 ```
 pip install -r requirements.txt
 python MemoryGame.py
-
 ```
 Fedora:
 ```
