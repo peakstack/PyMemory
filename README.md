@@ -3,8 +3,8 @@
 Um das Projekt mit Docker zu starten:
 
 ```
-docker build --tag the-pymemory
-docker run --name pymemory the-pymemory
+docker build . --tag pymemory
+docker run pymemory
 ```
 
 Um das Projekt selbst zu starten:
@@ -19,7 +19,7 @@ Fedora:
 python3 -m pip install pyperclip
 dnf install python3-pygame
 pip install -r requirements.txt
-python ./MemoryGame.py
+python MemoryGame.py
 ```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
