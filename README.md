@@ -10,7 +10,7 @@ docker run --name pymemory the-pymemory
 Um das Projekt selbst zu starten:
 ```
 pip install -r requirements.txt
-python ./MemoryGame.py
+python MemoryGame.py
 ```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
