@@ -9,6 +9,7 @@ from os.path import isfile, join
 import pygame
 import pygame_menu
 
+from src.PlayerStatistics import PlayerStatistics
 from src.StateManager import StateManager
 from src.Tile import Tile
 from src.TileException import TileException
@@ -23,7 +24,11 @@ class Background(Enum):
 
 class MemoryGame:
     def __init__(self):
-        self.custom_images_path = "images/custom"
+        self.username = "Spieler1"
+        self.player_statistics = PlayerStatistics()
+        self.player_statistics.load_from_file()
+        self.game_mode = Background.NORMAL
+        self.custom_images_path = "../images/custom"
         self.state_manager = StateManager()
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
@@ -32,19 +37,32 @@ class MemoryGame:
         self.images = self.normal_images * 2
         self.max_collection_count = 8
         pygame.init()
+        pygame.display.set_caption('PyGame - Teste dein Gedächtnis')
         self.screen = pygame.display.set_mode((600, 400))
-        self.menu = pygame_menu.Menu(400, 600, 'Welcome', theme=pygame_menu.themes.THEME_SOLARIZED)
+        self.menu = pygame_menu.Menu(400, 600, 'Willkommen', theme=pygame_menu.themes.THEME_SOLARIZED)
 
-        self.menu.add_text_input('Name :', default='Spieler1')
-        self.menu.add_selector('Tile Theme :', [('Normal', Background.NORMAL), ('Logos', Background.LOGOS),
-                                                ('Mixed', Background.MIXED), ('Custom', Background.CUSTOM)],
+        self.menu.add_text_input('Name :', default=self.username, onchange=self.set_username)
+        self.menu.add_selector('Hintergrund:', [('Normal', Background.NORMAL), ('Logos', Background.LOGOS),
+                                                ('Gemischt', Background.MIXED),
+                                                ('Benutzerdefiniert', Background.CUSTOM)],
                                onchange=self.set_tile_images)
-        self.menu.add_selector('Tile Count :', [('4x4', 4)],
+        self.menu.add_selector('Spielgröße :', [('4x4', 4)],
                                onchange=self.change_tile_count)
-        self.menu.add_button('Play', self.start_game)
-        self.menu.add_button('Quit', pygame_menu.events.EXIT)
+        self.menu.add_button('Spielen', self.start_game)
+        self.menu.add_button('Beenden', pygame_menu.events.EXIT)
         self.menu.mainloop(self.screen)
         pygame.quit()
+
+    def set_username(self, username):
+        self.username = username
+
+    def reset(self):
+        self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
+                              "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
+        self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
+                            "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
+        self.images = self.normal_images * 2
+        self.set_tile_images(None, self.game_mode)
 
     def change_tile_count(self, value, tile_count):
         self.max_collection_count = tile_count * 2
@@ -87,11 +105,14 @@ class MemoryGame:
         elif tile_type == Background.CUSTOM:
             file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
                           if isfile(join(self.custom_images_path, f))]
+            print(file_names)
             self.images = file_names * 2
         else:
             raise RuntimeError("background type not supported")
+        self.game_mode = tile_type
 
     def start_game(self):
+        self.reset()
         tiles_count = int(self.max_collection_count / 2)
         border_size = 5
         space_size = 65
@@ -145,33 +166,32 @@ class MemoryGame:
         running = True
 
         while running:
-            event = pygame.event.wait()
-            if event.type == pygame.QUIT:
-                running = False
-                self.screen = pygame.display.set_mode((600, 400))
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    self.screen = pygame.display.set_mode((600, 400))
+                """
+                Using key 'c' to hide the incorrect matches.
+                This is required because a thread based solution is asynchronous and
+                therefore would need to sync events and state of tiles, 
+                therefore interactions would be ambiguous
+                """
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
+                    if self.state_manager.is_full():
+                        matches = self.state_manager.check_tiles(True, event)
+                        if not matches:
+                            self.state_manager.hide_tiles()
+                        self.state_manager.clear_tiles()
 
-            """
-            Using key 'c' to hide the incorrect matches.
-            This is required because a thread based solution is asynchronous and
-            therefore would need to sync events and state of tiles, 
-            therefore interactions would be ambiguous
-            """
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                if self.state_manager.is_full():
-                    matches = self.state_manager.check_tiles(True, event)
-                    if not matches:
-                        self.state_manager.hide_tiles()
-                    self.state_manager.clear_tiles()
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+                    clicked = self.check_click(tiles)
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
-                clicked = self.check_click(tiles)
+                    if self.state_manager.is_full() and self.state_manager.check_tiles(clicked, event):
+                        self.state_manager.clear_tiles()
+                    self.check_finished(tiles)
 
-                if self.state_manager.is_full() and self.state_manager.check_tiles(clicked, event):
-                    self.state_manager.clear_tiles()
-                self.check_finished(tiles)
-
-            self.draw_tiles(tiles)
-            self.update_screen(clock)
+                self.draw_tiles(tiles)
+                self.update_screen(clock)
 
     def get_random_image(self, images):
         """
@@ -195,9 +215,9 @@ class MemoryGame:
         """
         try:
             rand_image, tile_id = self.get_random_image(images)
-            img = pygame.image.load('images/' + rand_image)
+            img = pygame.image.load('../images/' + rand_image)
 
-            cover = pygame.image.load('images/hidden.jpg')
+            cover = pygame.image.load('../images/hidden.jpg')
             tile = Tile(x * space_size, y * space_size, img, cover, tile_id)
             tiles.append(tile)
         except IndexError:
@@ -211,9 +231,17 @@ class MemoryGame:
         finished = all(not tile.covered for tile in tiles)
 
         if finished:
+            ratio = self.calculate_match_ratio() * 100.0
+
             print("Du hast das Spiel gewonnen!")
             print("Deine Statistiken:")
-            print("Deine Genauigkeit: " + str(self.calculate_match_ratio() * 100.0) + "%")
+            print("Deine Genauigkeit: " + str(ratio) + "%")
+
+            if self.player_statistics.is_new_highscore(self.username, ratio):
+                print("Du hast einen neuen Highscore!")
+
+            self.player_statistics.update_player(self.username, ratio)
+            self.reset()
 
     def prepare_tiles(self, tiles_count, space_size):
         """
