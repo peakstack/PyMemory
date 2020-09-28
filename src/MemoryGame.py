@@ -1,5 +1,6 @@
 import itertools
 import math
+import platform
 import random
 from enum import Enum
 from pathlib import Path
@@ -164,7 +165,9 @@ class MemoryGame:
         :param clock: pygame clock (https://www.pygame.org/docs/ref/time.html#pygame.time.Clock)
         """
         pygame.display.flip()
-        clock.tick(30)
+        # Limiting the fps to 30 frames per second on gnu+linux will make the game unplayable
+        if platform.system().startswith('Windows'):
+            clock.tick(30)
         pygame.display.update()
 
     def game_loop(self, tiles):
