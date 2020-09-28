@@ -1,9 +1,11 @@
 # PyMemory
 
 Um das Projekt mit Docker zu starten:
+
+```
 docker build --tag the-pymemory
 docker run --name pymemory the-pymemory
-
+```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
 Es gibt zu jedem Bild zwei Paare. 
