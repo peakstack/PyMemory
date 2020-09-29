@@ -10,11 +10,13 @@ class Tile:
         self.tile_id = tile_id
 
     def check_clicked(self, has_capacity) -> bool:
+        # check for state that there are not more than 2 being displayed on the screen
         if not has_capacity:
             return False
 
         x, y = pygame.mouse.get_pos()
 
+        # if mouse clicked this Tile and it has not been already clicked -> flip it
         if self.rect.collidepoint(x, y) and self.covered:
             self.flip()
             return True
@@ -29,6 +31,7 @@ class Tile:
         self.covered = not self.covered
 
     def draw(self, screen):
+        # if screen is covered, display the cover, else the image
         if self.covered:
             screen.blit(self.cover, self.rect)
         else:

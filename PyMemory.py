@@ -64,11 +64,13 @@ class MemoryGame:
         self.refresh_stats()
 
     def refresh_stats(self):
+        # updates the highscore label with the new value
         high_score = self.player_statistics.get_highscore(self.username)
         self.label.set_title('Highscore: {}'.format(((str(high_score) + '%')
                                                      if high_score is not None else "Nicht vorhanden")))
 
     def reset(self):
+        # resets all images and states
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
         self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
@@ -82,10 +84,15 @@ class MemoryGame:
         self.max_collection_count = tile_count * 2
 
     def calculate_match_ratio(self) -> float:
+        """
+        @return: the ratio of the matches and mismatches
+        @rtype: float
+        """
         mismatches = self.state_manager.mismatches
         matches = self.state_manager.matches
         ratio = matches + mismatches
 
+        # check for the undefined state of division by zero
         if ratio == 0:
             return 0.0
         return round(matches / ratio, 2)
@@ -114,12 +121,21 @@ class MemoryGame:
         elif tile_type == Background.LOGOS:
             self.images = self.logo_images * 2
         elif tile_type == Background.MIXED:
+            """
+            if mixed is selected, make a new list of 
+            two lists filled with normal and
+            logo backgrounds, but they have 
+            to fit the size of the field
+            """
             mixed_images = self.mix_lists_fit(self.normal_images, self.logo_images)
             self.images = mixed_images * 2
         elif tile_type == Background.CUSTOM:
+            # if user has selected custom images
+            # get all file names of images in the directory
             file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
                           if isfile(join(self.custom_images_path, f))]
             random.shuffle(file_names)
+            # fit the selected size of tiles
             self.images = file_names[:self.max_collection_count] * 2
         else:
             raise RuntimeError("background type not supported")
@@ -130,7 +146,9 @@ class MemoryGame:
         border_size = 5
         space_size = 65
         grid_size = tiles_count * space_size - border_size
+        # set the screen size to the size of the product of the length of the tiles with padding
         self.screen = pygame.display.set_mode((grid_size, grid_size))
+        # prepare the tiles to render on the screen
         tiles = self.prepare_tiles(tiles_count, space_size)
         self.game_loop(tiles)
 
@@ -140,6 +158,7 @@ class MemoryGame:
         :return: returns if any tile has been clicked
         :rtype: bool
         """
+        # check if any file has been clicked, if there is no more capacity there will no click get registered
         res = False
         for tile in tiles:
             has_capacity = self.state_manager.has_capacity()
@@ -173,6 +192,7 @@ class MemoryGame:
         pygame.display.update()
 
     def stop_current_game(self):
+        # resets the screen to the default resolution
         self.screen = pygame.display.set_mode((600, 400))
         self.reset()
 
@@ -187,6 +207,7 @@ class MemoryGame:
         self.start = datetime.datetime.now()
         while running:
             for event in pygame.event.get():
+                # if users quits game
                 if event.type == pygame.QUIT:
                     running = False
                     self.stop_current_game()
@@ -197,8 +218,9 @@ class MemoryGame:
                 therefore interactions would be ambiguous
                 """
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == pygame.BUTTON_LEFT:
+                    # check for valid click by the user
                     clicked = self.check_click(tiles)
-
+                    # if it is full, update the states
                     if self.state_manager.is_full() and self.state_manager.check_tiles(clicked, event):
                         self.state_manager.clear_tiles()
                     self.check_finished(tiles)
@@ -206,6 +228,7 @@ class MemoryGame:
                 self.draw_tiles(tiles)
                 self.update_screen(clock)
 
+                # if it is full and doesn't matches, then delay the inputs and hides after the delay
                 if self.state_manager.is_full():
                     matches = self.state_manager.check_tiles(True, event)
                     if not matches:
@@ -220,6 +243,7 @@ class MemoryGame:
         :return: tuple of random selected image in image list and associated tile id
         :rtype: (str, str)
         """
+        # get random image of list of images and remove it afterwards
         rand_image = random.choice(images)
         images.remove(rand_image)
         tile_id = Path(rand_image).resolve().stem
@@ -235,6 +259,7 @@ class MemoryGame:
         :param images: list of available images
         """
         try:
+            # add a tile as an object to the tiles ready to be rendered by the screen
             rand_image, tile_id = self.get_random_image(images)
             img = pygame.image.load('images/' + rand_image)
 
@@ -249,6 +274,10 @@ class MemoryGame:
         # it can't handle clicking on different buttons in multiple threads
         # so it panics and throws an AttributeError, but I don't care
         try:
+            """
+            creating the thread to split with mainthread and therefore after the game has been 
+            finished all tiles can been shown immediately and not just after the ok button has been pressed
+            """
             threading.Thread(
                 target=lambda: easygui.msgbox(message, 'Information')
             ).start()
@@ -263,11 +292,14 @@ class MemoryGame:
         finished = all(not tile.covered for tile in tiles)
 
         if finished:
+            # calculates the time since the player started the game
             end = datetime.datetime.now()
             time = end - self.start
+            # rounds the ratio to 2 digits
             ratio = round(self.calculate_match_ratio() * 100.0, 2)
 
             is_high_score = self.player_statistics.is_new_highscore(self.username, ratio)
+            # updates and renders the players stats of the current game
             self.player_statistics.update_player(self.username, ratio)
             self.show_message_box("Du hast das Spiel gewonnen!\n{}\nDeine Zeit: {} Sekunden"
                                   .format(("Du hast einen neuen Highscore: {}% Präzision"
@@ -284,6 +316,7 @@ class MemoryGame:
         """
         images = self.images
 
+        # if there is no more image in the list because it has been used already in earlier rounds, refill the images
         if len(images) == 0:
             self.images = self.mix_lists_fit(self.normal_images, self.logo_images)
 

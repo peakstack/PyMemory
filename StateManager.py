@@ -11,6 +11,8 @@ class StateManager:
         self.mismatches = 0
 
     def add_clicked_tile(self, tile):
+        # check if state is full, if so then add it,
+        # otherwise something went horribly wrong
         if self.has_capacity():
             self.current_flipped_tiles.append(tile)
         else:
@@ -20,6 +22,7 @@ class StateManager:
         return len(self.current_flipped_tiles) < self.max_tiles
 
     def hide_tiles(self):
+        # covers all tiles displayed on the screen
         for tile in self.current_flipped_tiles:
             tile.set_covered(True)
 
@@ -31,10 +34,12 @@ class StateManager:
 
     def check_tiles(self, clicked, event):
         if clicked:
+            # there are no more than 2 tiles in the list so this is fine
             first_tile = self.current_flipped_tiles[0]
             second_tile = self.current_flipped_tiles[1]
             matching = first_tile.tile_id == second_tile.tile_id
 
+            # add matches and mismatches for ratio calculation
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if matching:
                     self.matches += 1
