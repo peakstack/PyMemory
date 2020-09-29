@@ -1,5 +1,5 @@
 # PyMemory
-<b>(Derzeit nicht möglich da pip die Abhängigkeiten nicht herunterlädt.)</b><br>
+<b>(Derzeit nicht möglich da pip in Docker die Abhängigkeiten nicht herunterlädt.)</b><br>
 Um das Projekt mit Docker zu starten:
 
 ```
@@ -17,7 +17,7 @@ python PyMemory.py
 Fedora:
 ```
 python3 -m pip install pyperclip
-dnf install python3-pygame
+dnf install python3-pygame python3-tkinter
 pip install -r requirements.txt
 python PyMemory.py
 ```
