@@ -38,7 +38,7 @@ class MemoryGame:
                               "biene.jpg", "pferd.jpg", "auto.jpg", "nebel.jpg"]
         self.logo_images = ["rust.jpg", "python.jpg", "java.jpg", "cpp.jpg",
                             "kotlin.jpg", "javascript.jpg", "ocaml.jpg", "go.jpg"]
-        self.images = self.normal_images * 2
+        self.images = self.normal_images * 2  # image list that is being played
         self.max_collection_count = 8
         pygame.init()
         pygame.display.set_icon(pygame.image.load('images/hidden.jpg'))
@@ -55,19 +55,18 @@ class MemoryGame:
         self.label = self.menu.add_label(title='Highscore: Nicht vorhanden', label_id='highscore', selectable=True)
         self.menu.add_button('Spielen', self.start_game)
         self.menu.add_button('Beenden', pygame_menu.events.EXIT)
-        self.refresh_stats(self.username)
+        self.refresh_stats()
         self.menu.mainloop(self.screen)
         pygame.quit()
 
     def set_username(self, username):
         self.username = username
-        self.refresh_stats(username)
+        self.refresh_stats()
 
-    def refresh_stats(self, username):
-        high_score = self.player_statistics.get_highscore(username)
-        high_score_display = 'Highscore: ' + str(high_score) + "%" if high_score is not None else 'Highscore: Nicht ' \
-                                                                                                  'vorhanden '
-        self.label.set_title(high_score_display)
+    def refresh_stats(self):
+        high_score = self.player_statistics.get_highscore(self.username)
+        self.label.set_title('Highscore: {}'.format(((str(high_score) + '%')
+                                                     if high_score is not None else "Nicht vorhanden")))
 
     def reset(self):
         self.normal_images = ["blume.jpg", "bus.jpg", "bagger.jpg", "erde.jpg",
@@ -77,7 +76,7 @@ class MemoryGame:
         self.images = self.normal_images * 2
         self.set_tile_images(None, self.game_mode)
         self.state_manager.clear_tiles()
-        self.refresh_stats(self.username)
+        self.refresh_stats()
 
     def change_tile_count(self, value, tile_count):
         self.max_collection_count = tile_count * 2
@@ -115,8 +114,8 @@ class MemoryGame:
         elif tile_type == Background.LOGOS:
             self.images = self.logo_images * 2
         elif tile_type == Background.MIXED:
-            images = self.mix_lists_fit(self.normal_images, self.logo_images)
-            self.images = images * 2
+            mixed_images = self.mix_lists_fit(self.normal_images, self.logo_images)
+            self.images = mixed_images * 2
         elif tile_type == Background.CUSTOM:
             file_names = [('custom/' + f) for f in listdir(self.custom_images_path)
                           if isfile(join(self.custom_images_path, f))]
@@ -173,6 +172,10 @@ class MemoryGame:
             clock.tick(30)
         pygame.display.update()
 
+    def stop_current_game(self):
+        self.screen = pygame.display.set_mode((600, 400))
+        self.reset()
+
     def game_loop(self, tiles):
         """
         :param tiles: list of created tiles displayed by screen
@@ -186,8 +189,7 @@ class MemoryGame:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
-                    self.screen = pygame.display.set_mode((600, 400))
-                    self.reset()
+                    self.stop_current_game()
                 """
                 Using key 'c' to hide the incorrect matches.
                 This is required because a thread based solution is asynchronous and
@@ -244,11 +246,12 @@ class MemoryGame:
 
     def show_message_box(self, message):
         # the library to display the message box is full of bugs
+        # it can't handle clicking on different buttons in multiple threads
+        # so it panics and throws an AttributeError, but I don't care
         try:
-            box_thread = threading.Thread(
+            threading.Thread(
                 target=lambda: easygui.msgbox(message, 'Information')
-            )
-            box_thread.start()
+            ).start()
         except AttributeError:
             pass
 
@@ -264,13 +267,12 @@ class MemoryGame:
             time = end - self.start
             ratio = round(self.calculate_match_ratio() * 100.0, 2)
 
-            if self.player_statistics.is_new_highscore(self.username, ratio):
-                self.show_message_box("Du hast das Spiel gewonnen!\nDu hast einen neuen Highscore!\nDeine Zeit: " +
-                                      str(time.seconds) + " Sekunden.")
-            else:
-                self.show_message_box("Du hast das Spiel gewonnen!\nDeine Zeit: " + str(time.seconds) + " Sekunden.")
-
+            is_high_score = self.player_statistics.is_new_highscore(self.username, ratio)
             self.player_statistics.update_player(self.username, ratio)
+            self.show_message_box("Du hast das Spiel gewonnen!\n{}\nDeine Zeit: {} Sekunden"
+                                  .format(("Du hast einen neuen Highscore: {}% Präzision"
+                                           .format(self.player_statistics.get_highscore(self.username))
+                                           if is_high_score else ""), time.seconds))
             self.reset()
 
     def prepare_tiles(self, tiles_count, space_size):
@@ -300,7 +302,8 @@ class MemoryGame:
         """
         assert tiles_count <= math.sqrt(len(images))
         tiles = []
-        # using itertools to flatten (merging 2 lists) and therefore optimizing startup time
+        # using itertools to flatten (merging 2D vector to a linear vector) the product of the tiles
+        # and therefore optimizing startup time
         for y, x in itertools.product(range(tiles_count), range(tiles_count)):
             self.add_tile(y, x, tiles, images, space_size)
         return tiles
