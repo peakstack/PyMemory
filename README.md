@@ -12,14 +12,14 @@ Um das Projekt selbst zu starten:
 Windows:
 ```
 pip install -r requirements.txt
-python MemoryGame.py
+python PyMemory.py
 ```
 Fedora:
 ```
 python3 -m pip install pyperclip
 dnf install python3-pygame
 pip install -r requirements.txt
-python MemoryGame.py
+python PyMemory.py
 ```
 
 Im Spiel PyMemory geht es darum sich verschiedene Karten zu merken.
